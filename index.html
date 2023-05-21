@@ -1,0 +1,2752 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nullmonkey</title>
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1.0,shrink-to-fit=no"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="style-src
+              'sha256-w5nsv8K3aALYG5cMoEYg9jtuBU32Niv/vZ1J/OMI3m4='
+              'sha256-bJn2HHXgJmY1o/jWWPoL83oAxGty6o/PO3mgOwfhHss='
+              'sha256-xgfSel4gUp7osozaoDGQ9gIx8Mn62m3TZnnsS6MrHuQ='
+              'sha256-hGBasvJNmodEF5B22QAUk7ZquFKMApw73wmPJ1YIcZc=';"
+    />
+    <!--
+      CSP style-src 依次为
+        基本 CSS Hash
+        标准暗色外观 CSS Hash
+        注入的暗色外观 CSS Hash
+        裁掉 accent-color 的注入的暗色外观 CSS Hash
+    -->
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        background: white !important;
+      }
+      textarea,
+      #status {
+        margin: 0.75em 0;
+        padding: 0.5em;
+        box-shadow: 0 2px 5px darkgray;
+        border-radius: 0.5rem;
+        border: none;
+        outline: none;
+        width: 96%;
+        height: 85vh;
+        font-family: monospace;
+        font-weight: bold;
+        background: #f0f8ff;
+        overflow: scroll;
+        resize: none;
+      }
+      div#status {
+        display: flex;
+        flex-direction: column-reverse;
+      }
+      dialog {
+        width: max-content;
+        border-radius: 0.5rem;
+        border: none;
+        background: #f1f3f5;
+        color: #4c5161;
+      }
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.25);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+      }
+      form {
+        text-align: center;
+      }
+      #doc > form > div > a {
+        display: block;
+      }
+      form a {
+        text-decoration: underline;
+        color: #0066cc;
+        color: LinkText;
+        color: -webkit-link;
+      }
+      form i,
+      form b {
+        color: silver;
+        display: block;
+      }
+      form button {
+        width: 6rem;
+      }
+      form pre {
+        text-align: initial;
+        overflow: scroll;
+        white-space: pre-wrap;
+        height: 70vh;
+        width: 60vw;
+      }
+      #lic pre {
+        margin: 0;
+      }
+      #doc {
+        font-family: monospace;
+      }
+      [type="checkbox"],
+      [type="radio"] {
+        accent-color: #008bcc;
+      }
+      textarea::-webkit-input-placeholder {
+        color: lightskyblue;
+      }
+      header,
+      main,
+      footer {
+        margin: auto;
+        width: 95%;
+        height: 100vh;
+      }
+      button {
+        border-radius: 0.5rem;
+        width: 10rem;
+        height: 1.5rem;
+        line-height: 1.5rem;
+        margin: 0.5rem;
+        border: none;
+        outline: none;
+        box-shadow: 0 2px 5px darkgray;
+        color: snow;
+        background: deepskyblue;
+      }
+      button:disabled {
+        background: gainsboro;
+        color: dimgray;
+      }
+      img {
+        width: max-content;
+      }
+      .bar {
+        text-align: center;
+        margin: auto;
+        display: flex;
+        justify-content: space-around;
+      }
+      .info {
+        color: #334;
+      }
+      .succ {
+        color: #2ec27e;
+      }
+      .warn {
+        color: violet;
+      }
+      .erro {
+        color: #c01c28;
+      }
+    </style>
+    <style id="dark">
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          color-scheme: dark;
+          background: #2c333f !important;
+        }
+        textarea,
+        #status,
+        dialog {
+          background: #353e4d;
+          color: #a2a9b6;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        }
+        dialog {
+          background: #2c333f;
+          color: #a2a9b6;
+        }
+        textarea::-webkit-input-placeholder {
+          color: #585d66;
+        }
+        form i form b {
+          color: #76859f;
+        }
+        [type="checkbox"],
+        [type="radio"] {
+          accent-color: royalblue;
+        }
+        button {
+          background: royalblue;
+          color: lavender;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        }
+        button:disabled {
+          background: #353e4d;
+          color: lightslategray;
+        }
+        .info {
+          color: #a2a9b6;
+        }
+        .succ {
+          color: #52d699;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a id="p1"></a>
+    <header>
+      <textarea
+        id="import"
+        placeholder='欢迎使用 Nullmonkey :) ，你可以投喂
+
+油猴脚本 安装按钮 的链接
+( 长按按钮 或 点击右键，复制链接 )
+( 链接后的内容 不要带有 英文字母和符号 )
+
+完整的 油猴脚本 代码
+( 必须带 // ==UserScript== )
+( 不支持嵌套的元数据 )
+
+然后点下面的 "开始" 来转换。
+—————— 说明 ——————
+转换脚本需要 WebView 69+ 内核支持。
+
+转换器独立的安装功能目前只支持
+Via 鲨鱼 Alook lit MT 米侠
+这几个浏览器，
+
+请注意，这个只应作为备用方案，
+如果浏览器自己提供了油猴支持，
+那就不要使用它，浏览器兼容肯定更好。
+
+CORS 代理后面会接带协议的地址，
+所以不支持 netnr ...
+
+!!!!!!!!!!!! 声明  !!!!!!!!!!!!
+
+1. 这只是个脚本转换器，
+如果原脚本有任何恶意行为，与它无关。
+转换后的脚本已标明原脚本代码范围。
+如果你怀疑是转换器注入了恶意代码，
+你可以自行审查代码，以便确定是
+转换器的问题 或是 原脚本的问题。
+
+2. 原脚本 ( 尤其是 GreasyFork 上面的 )
+大多有自己的使用协议。
+转换日志中已尽量标明部分协议
+( "发布协议:" 字段 )，
+某些协议可能需要你阅读脚本代码，
+或者 去脚本发布网站才能看到。
+你应该自行遵循这些协议，
+对于违反原作者协议使用和分发转换后的脚本，
+本作者不承担任何责任。
+'
+        spellcheck="false"
+      ></textarea>
+      <div class="bar">
+        <button id="config">设置</button>
+        <button id="analy">开始</button>
+        <button id="clear">清空</button>
+      </div>
+    </header>
+    <a id="p2"></a>
+    <main>
+      <div id="status"></div>
+      <div class="bar">
+        <button id="result" disabled>编辑</button>
+        <button id="inst" disabled>安装</button>
+        <button id="ret1">返回</button>
+      </div>
+    </main>
+    <a id="p3"></a>
+    <footer>
+      <textarea
+        id="code"
+        spellcheck="false"
+        placeholder="转换后的代码..."
+      ></textarea>
+      <div class="bar">
+        <button id="copy" disabled>复制代码</button>
+        <button id="ret2">返回</button>
+      </div>
+    </footer>
+    <dialog>
+      <form method="dialog">
+        <div>
+          <i> 脚本头部注释 </i>
+          <label> <input type="radio" name="head" value="2" /> Via </label>
+          <label> <input type="radio" name="head" value="1" /> 油猴 </label>
+          <label> <input type="radio" name="head" value="0" /> 无 </label>
+        </div>
+        <div>
+          <i> @run-at </i>
+          <label>
+            <input type="checkbox" name="noRunAt" />
+            不使用运行时机模拟
+            <!--<br/>
+          直接运行脚本，用于在控制台测试代码-->
+          </label>
+        </div>
+        <div>
+          <i> GM_info </i>
+          <label> <input type="checkbox" name="infoHeader" />元数据 </label>
+          <label> <input type="checkbox" name="infoSource" />源代码 </label>
+          <label> <input type="checkbox" name="infoIcon" />图标 </label>
+        </div>
+        <div>
+          <i> @require @resource </i>
+          <input type="url" name="corsSrv" placeholder="CORS 代理地址" />
+        </div>
+        <div>
+          <i> GM_xmlhttpRequest </i>
+          <input type="url" name="xhrCorsSrv" placeholder="CORS 代理地址" />
+        </div>
+        <div>
+          <i id="version"></i>
+          <label>
+            <input type="checkbox" name="darkUI" />
+            强制使用暗色外观 </label
+          ><br />
+          <address>
+            <a
+              href="https://bitbucket.org/lemon399/lemon399.bitbucket.io/src/vercel/util/null.html"
+              target="_blank"
+              rel="noopener"
+              >项目地址</a
+            >
+            <a id="openlic">许可协议</a><br />
+            <a
+              href="../test/browser/monkeystat.html"
+              target="_blank"
+              rel="noopener"
+              >兼容情况</a
+            >
+            <a id="opendoc">参考文档</a>
+          </address>
+        </div>
+        <div class="bar">
+          <button value="ok" type="submit">好</button>
+          <button value="cancel" type="submit">取消</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="doc">
+      <form method="dialog">
+        <div>
+          <a
+            href="https://wiki.greasespot.net/Greasemonkey_Manual:API"
+            target="_blank"
+            rel="noopener"
+            >Greasemonkey</a
+          >
+          <a
+            href="https://sourceforge.net/p/greasemonkey/wiki/Main_Page/"
+            target="_blank"
+            rel="noopener"
+            >Greasemonkey 旧版帮助</a
+          >
+          <a
+            href="https://www.tampermonkey.net/documentation.php"
+            target="_blank"
+            rel="noopener"
+            >Tampermonkey</a
+          >
+          <a
+            href="https://violentmonkey.github.io/api/gm/"
+            target="_blank"
+            rel="noopener"
+            >Violentmonkey API</a
+          >
+          <a
+            href="https://violentmonkey.github.io/api/metadata-block/"
+            target="_blank"
+            rel="noopener"
+            >Violentmonkey 元数据</a
+          >
+          <br />
+          <a
+            href="https://docs.scriptcat.org/dev/meta.html"
+            target="_blank"
+            rel="noopener"
+            >脚本猫 描述文档</a
+          >
+          <a
+            href="https://docs.scriptcat.org/dev/api.html"
+            target="_blank"
+            rel="noopener"
+            >脚本猫 API 文档</a
+          >
+          <a
+            href="https://github.com/erosman/support/raw/FireMonkey/content/help.html"
+            target="_blank"
+            rel="noopener"
+            >FireMonkey</a
+          >
+          <a href="./firemonkey-help/" target="_blank" rel="noopener"
+            >FireMonkey (样式修复)</a
+          >
+          <a
+            href="https://github.com/scriptish/scriptish/wiki/Manual%3A-API"
+            target="_blank"
+            rel="noopener"
+            >Scriptish API</a
+          >
+          <a
+            href="https://github.com/scriptish/scriptish/wiki/Manual%3A-Metadata-Block"
+            target="_blank"
+            rel="noopener"
+            >Scriptish 元数据</a
+          >
+          <br />
+          <a
+            href="http://via-app.cn/#/ArticleDetail/11"
+            target="_blank"
+            rel="noopener"
+            >Via 轻插件 开发规范</a
+          >
+          <a
+            href="https://www.xbext.com/docs/tutorials/write-user-script-for-xbrowser-part2/"
+            target="_blank"
+            rel="noopener"
+            >X 浏览器 教程</a
+          >
+          <a
+            href="https://greasyfork.org/zh-CN/help/meta-keys"
+            target="_blank"
+            rel="noopener"
+            >GreasyFork 元数据</a
+          >
+          <a
+            href="https://github.com/OpenUserJS/OpenUserJS.org/tree/master/public/pegjs"
+            target="_blank"
+            rel="noopener"
+            >OpenUserJS 元数据检查规则</a
+          >
+        </div>
+        <div class="bar">
+          <button value="close" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="lic">
+      <form method="dialog">
+        <div>
+          <code>
+            <pre>
+Nullmonkey 以 MPL-2.0 许可协议发布 :
+====================================
+This Source Code Form is subject to the terms of the 
+Mozilla Public License, v. 2.0. 
+If a copy of the MPL was not distributed with this file, 
+You can obtain one at <a href="https://mozilla.org/MPL/2.0/" target="_blank" rel="noopener">https://mozilla.org/MPL/2.0/</a>.
+====================================
+Nullmonkey 包含从以下各处取得的代码，
+它们的许可协议如下 :
+====================================
+FireMonkey
+<a href="https://addons.mozilla.org/en-US/firefox/addon/firemonkey/" target="_blank" rel="noopener">AMO</a> <a href="https://github.com/erosman/support" target="_blank" rel="noopener">GitHub</a>
+------------------------------------
+This Source Code Form is subject to the terms of the 
+Mozilla Public License, v. 2.0. 
+If a copy of the MPL was not distributed with this file, 
+You can obtain one at <a href="https://mozilla.org/MPL/2.0/" target="_blank" rel="noopener">https://mozilla.org/MPL/2.0/</a>.
+====================================
+md5()
+<a href="https://stackoverflow.com/a/60467595" target="_blank" rel="noopener">Stack Overflow</a> <a href="http://pajhome.org.uk/crypt/md5/md5.html" target="_blank" rel="noopener">原脚本</a>
+------------------------------------
+Copyright (c) 1998 - 2009, Paul Johnston & Contributors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+Neither the name of the author nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+---------------------------------
+The JavaScript code implementing the algorithm is derived from the C code in RFC 1321 and is covered by the following copyright:
+
+License to copy and use this software is granted provided that it is identified as the "RSA Data Security, Inc. MD5 Message-Digest Algorithm" in all material mentioning or referencing this software or this function.
+
+License is also granted to make and use derivative works provided that such works are identified as "derived from the RSA Data Security, Inc. MD5 Message-Digest Algorithm" in all material mentioning or referencing the derived work.
+
+RSA Data Security, Inc. makes no representations concerning either the merchantability of this software or the suitability of this software for any particular purpose. It is provided "as is" without express or implied warranty of any kind.
+
+These notices must be retained in any copies of any part of this documentation and/or software.
+
+This copyright does not prohibit distribution of the JavaScript MD5 code under the BSD license.
+====================================
+bextButton
+<a href="https://github.com/ikkz/bext" target="_blank" rel="noopener">GitHub</a>
+------------------------------------
+MIT License
+
+Copyright (c) 2022 ikkz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+====================================
+onchangeurl
+<a href="https://stackoverflow.com/a/52809105" target="_blank" rel="noopener">Stack Overflow</a>
+------------------------------------
+未说明许可，按 Public Domain 认定
+====================================
+          </pre>
+          </code>
+        </div>
+        <div class="bar">
+          <button value="close" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <script>
+      /* 文档
+       * Greasemonkey : https://wiki.greasespot.net/Greasemonkey_Manual:API
+       *      https://sourceforge.net/p/greasemonkey/wiki/Metadata_Block/
+       *   2005 -
+       * Tampermonkey : https://www.tampermonkey.net/documentation.php
+       *   2010 -
+       * Violentmonkey : https://violentmonkey.github.io/api/gm/
+       *      https://violentmonkey.github.io/api/metadata-block/
+       *   2013 -
+       * Scriptish : https://github.com/scriptish/scriptish/wiki/Manual%3A-Metadata-Block
+       *      https://github.com/scriptish/scriptish/wiki/Manual%3A-API
+       *   2010 - 2014
+       * UserScripts : https://github.com/quoid/userscripts#metadata
+       *   2018 -
+       * FireMonkey : https://github.com/erosman/support/tree/FireMonkey/content
+       *   2018 -
+       * ScriptCat 脚本猫 : https://docs.scriptcat.org/dev/
+       *   2021 -
+       * X 浏览器 : https://www.xbext.com/docs/tutorials/write-user-script-for-xbrowser-part2/
+       *   从 3.6.5 开始兼容，所以 2021 -
+       * AdGuard : https://kb.adguard.com/en/general/userscripts
+       *   从 5.9 开始兼容，所以 2014 -
+       * Bromite : https://github.com/bromite/bromite/wiki/UserScripts
+       *   从 94 开始兼容，所以 2021 -
+       * WebMonkey : https://github.com/warren-bank/Android-WebMonkey
+       *   2015 -
+       * UserScriptLoader : https://github.com/ywzhaiqi/userChromeJS/blob/db7b53546739bb3f5aac6e451754ac5418af0d1a/UserScriptLoaderPlus/UserScriptLoaderMod.uc.js
+       *   2011 - 2017
+       * userChromeJS : https://github.com/xiaoxiaoflood/firefox-scripts/blob/master/chrome/utils/userChrome.jsm
+       *
+       * 其它
+       * Creammonkey / GreaseKit : http://creammonkey.sourceforge.net/
+       *                         : https://8-p.info/greasekit/
+       *   2006 - 2008
+       * NinjaKit : https://github.com/os0x/NinjaKit
+       *   2012 - 2016
+       * IE7Pro : http://web.archive.org/web/20090225234016/http://iescripts.org/help/index.html
+       *   2006 - 2010
+       * Guerilla Script : https://repo.or.cz/guerillascript.git/blob/6e796416510c82a61f1e764618e2ad6d340d4692:/dox/README.txt
+       *   2015 - 2021
+       * Greasemonkey Emulation : https://userscripts-mirror.org/scripts/show/88932
+       *   2005 - 2010
+       * GM_Polyfill : https://greasyfork.org/zh-CN/scripts/429613-gm-polyfill
+       *   2021
+       * gm4-polyfill : https://www.greasespot.net/2017/09/greasemonkey-4-for-script-authors.html
+       *   2017 - 2018
+       *
+       * GreasyFork : https://greasyfork.org/zh-CN/help/meta-keys
+       * OpenUserJS : https://github.com/OpenUserJS/OpenUserJS.org/tree/master/public/pegjs
+       * 轻插件 : http://via-app.cn/#/ArticleDetail/11
+       */
+
+      let set = {
+          infoHeader: false,
+          infoIcon: false,
+          infoSource: false,
+          darkUI: false,
+          noRunAt: false,
+          corsSrv: "https://api.codetabs.com/v1/proxy?quest=",
+          xhrCorsSrv: "https://api.codetabs.com/v1/proxy?quest=",
+          head: 2,
+        },
+        NmInfo = "Nullmonkey 1.10.4",
+        lcdn = "https://cdn.bootcdn.net/ajax/libs/",
+        darkStyle,
+        orig = "",
+        origSize = 0,
+        viobj = {
+          id: 0,
+          name: "",
+          author: "",
+          url: "*",
+          code: "",
+        };
+      function parseBody(text) {
+        let namet = "",
+          despt = "",
+          metat = "",
+          src = "",
+          reqsrc = "",
+          header = [],
+          white = [],
+          black = [],
+          name = [],
+          desp = [],
+          apis = [],
+          cssload = [],
+          res = [],
+          meta = {},
+          ignoreApi = false,
+          delay = 0,
+          validrule = 0,
+          load = 3,
+          nmToken = null,
+          isBlack = true,
+          ok = true,
+          lib = false,
+          inclReq = true,
+          runOnce = false,
+          info = {
+            scriptHandler: NmInfo.split(" ")[0],
+            version: NmInfo.split(" ")[1],
+            script: {
+              require: [],
+              resources: [],
+              includes: [],
+              excludes: [],
+              matches: [],
+              excludeMatches: [],
+              connect: [],
+              grant: [],
+            },
+          },
+          body,
+          lic,
+          oldMetaValue;
+        function pushInfo(type, info, html) {
+          let color =
+              type == 0
+                ? "info"
+                : type == 1
+                ? "succ"
+                : type == 2
+                ? "warn"
+                : type == 3
+                ? "erro"
+                : "",
+            span = document.createElement("span");
+          if (type == 3) ok = false;
+          span.className = color;
+          if (!html) {
+            span.innerText = info;
+          } else {
+            span.innerHTML = info;
+          }
+          document
+            .querySelector("#status")
+            .insertAdjacentElement("afterbegin", span);
+        }
+        function pushIcon(url) {
+          let img = document.createElement("img");
+          img.src = url;
+          document
+            .querySelector("#status")
+            .insertAdjacentElement("afterbegin", img);
+        }
+        function grantCheck(api) {
+          pushInfo(0, `调用接口: ${api}`);
+          switch (api) {
+            case "GM_addElement":
+            case "GM.addElement":
+            case "GM_getValue":
+            case "GM_setValue":
+            case "GM_listValues":
+            case "GM_deleteValue":
+            case "GM.getValue":
+            case "GM.setValue":
+            case "GM.listValues":
+            case "GM.deleteValue":
+            case "GM_addValueChangeListener":
+            case "GM_removeValueChangeListener":
+            case "GM_download":
+            case "GM_log":
+            case "GM_getMetadata":
+            case "unsafeWindow":
+            case "window.focus":
+            case "window.close":
+            case "window.onurlchange":
+              apis.push(api);
+              break;
+            case "GM_info":
+            case "GM.info":
+              pushInfo(
+                2,
+                "不完全支持 GM_info，油猴插件之间格式不一致的，以 TM > VM > GM 为准"
+              );
+              apis.push(api);
+              break;
+            case "GM_registerMenuCommand":
+            case "GM_unregisterMenuCommand":
+            case "GM.registerMenuCommand":
+            case "GM_renameMenuCommand": // Greasemonkey Emulation
+            case "GM_enableMenuCommand": // Scriptish
+            case "GM_disableMenuCommand": // Scriptish
+              pushInfo(2, "无法绕过 CSP");
+              pushInfo(2, "受网页和其它脚本影响，按钮和菜单可能错位");
+              apis.push(api);
+              break;
+            case "GM_fetch":
+            case "GM.fetch":
+              pushInfo(2, "如果脚本请求跨域，将会出错无法运行");
+              apis.push(api);
+              break;
+            case "GM_xmlhttpRequest":
+            case "GM.xmlHttpRequest":
+              pushInfo(2, "使用免费而有限制的代理，速度和可用性无法保证");
+              apis.push(api);
+              break;
+            case "GM_getResourceText":
+              pushInfo(2, "如果无法获取内容，将返回空字符串");
+              apis.push(api);
+              break;
+            case "GM_getResourceURL":
+            case "GM.getResourceUrl":
+              pushInfo(2, "如果无法获取内容，将返回 URL (非标准)");
+              apis.push(api);
+              break;
+            case "GM_setClipboard":
+            case "GM.setClipboard":
+              pushInfo(2, "复制功能不稳定，可能失效");
+              pushInfo(2, "只支持复制文本");
+              pushInfo(2, "备用方案无法绕过 CSP");
+              apis.push(api);
+              break;
+            case "GM_notification":
+            case "GM.notification":
+              pushInfo(2, "不支持显示通知中的图片");
+              apis.push(api);
+              break;
+            case "GM_openInTab":
+            case "GM.openInTab":
+              pushInfo(2, "openInTab 不支持后台打开标签");
+              pushInfo(2, "openInTab onclose 事件无法跨域");
+              apis.push(api);
+              break;
+            case "GM_addStyle":
+            case "GM.addStyle":
+              pushInfo(2, "样式可能不会立即生效");
+            case "GM_addScript":
+            case "GM.addScript":
+              pushInfo(2, "无法绕过 CSP");
+              apis.push(api);
+              break;
+            case "GM_xpath":
+              pushInfo(2, "高度试验，可能不支持 obj.resolver()");
+              apis.push(api);
+              break;
+            case "GM_addValueChangeListener":
+            case "GM_removeValueChangeListener":
+              pushInfo(2, "不支持离线存储事件");
+              pushInfo(2, "不支持跨域，不支持多脚本协同调用");
+              apis.push(api);
+              break;
+            case "GM_getTab":
+            case "GM_getTabs":
+            case "GM_saveTab":
+            case "GM_safeHTMLParser": // Scriptish
+            case "GM_cryptoHash": // Scriptish
+            case "GM_toastLong": // WebMonkey
+            case "GM_toastShort": // WebMonkey
+            case "GM_getUrl": // WebMonkey
+            case "GM_resolveUrl": // WebMonkey
+            case "GM_startIntent": // WebMonkey
+            case "GM_loadUrl": // WebMonkey
+            case "GM_loadFrame": // WebMonkey
+            case "GM_exit": // WebMonkey
+            case "GM_popup": // FireMonkey
+            case "GM.popup": // FireMonkey
+            case "GM_cookie":
+            case "GM.cookie":
+            case "GM_webRequest":
+            case "GM.webRequest":
+            case "GM_saveFile": // UserScriptLoader
+            case "GM_saveFileSync": // UserScriptLoader
+            case "GM_readFileSync": // UserScriptLoader
+            case "GM_run": // UserScriptLoader
+            case "GM_openConsole": // UserScriptLoader
+            case "GM_closeNotification": // ScriptCat 脚本猫
+            case "GM_updateNotification": // ScriptCat 脚本猫
+            case "CAT_setProxy": // ScriptCat 脚本猫
+            case "CAT_clearProxy": // ScriptCat 脚本猫
+            case "CAT_click": // ScriptCat 脚本猫
+            default:
+              if (!ignoreApi && ok)
+                ignoreApi = confirm(
+                  `当前脚本里包含无法兼容的功能，
+可能会影响其它脚本运行，
+是否继续 ?`
+                );
+              if (!ignoreApi) {
+                pushInfo(3, `不支持 ${api}`);
+              } else {
+                pushInfo(2, `不支持 ${api}，忽略`);
+              }
+              break;
+          }
+        }
+        // 下面两个域名规则转换函数来自 FireMonkey
+        // 作了以下修改:
+        // 1. 支持 .TLD 通配
+        // 2. 处理某些正则，如
+        //    /^https?://tv.cctv.com/\d*/\d*/\d*/VIDE.*.shtml*/
+
+        //         This Source Code Form is subject to the terms of the
+        //         Mozilla Public License, v. 2.0.
+        //         If a copy of the MPL was not distributed with this file,
+        //         You can obtain one at https://mozilla.org/MPL/2.0/.
+        // https://github.com/erosman/support/blob/FireMonkey/content/app.js#L839
+        function include2Regexp(mr) {
+          let regchar = /[-\/\\^$+.()|[\]{}]/g;
+          if (mr.slice(0, 1) == "/" && mr.slice(-1) == "/") {
+            return Function(
+              `return /${mr
+                .slice(1, -1)
+                .replace("//", "\\/\\/")
+                .replace(/([^\\])\//g, (m, p) => p + "\\" + m.slice(1))}/`
+            )();
+          } else {
+            return Function(
+              `return /(^${mr
+                .replace(regchar, "\\$&")
+                .replace(/^\*:/g, "http(|s):")
+                .replace(/\*/g, ".*")
+                .replace(/\.TLD\//, ".*/")
+                .replace(/\.tld\//, ".*/")
+                .replace(/\?/g, ".")}$)/`
+            )();
+          }
+        }
+        // https://github.com/erosman/support/blob/FireMonkey/content/app.js#L828
+        function match2Regexp(mr) {
+          let regchar = /[-\/\\^$+?.()|[\]{}]/g;
+          return Function(
+            `return /(^${mr
+              .replace(regchar, "\\$&")
+              .replace(/^\*:/g, "https?:")
+              .replace(/\*/g, ".*")
+              .replace(/\.TLD\//, ".*/")
+              .replace(/\.tld\//, ".*/")
+              .replace("/.*\\.", "/(.*\\.)?")}$)/`
+          )();
+        }
+
+        // https://stackoverflow.com/a/60467595
+        //  A formatted version of a popular md5 implementation.
+        //  Original copyright (c) Paul Johnston & Greg Holt.
+        //  The function itself is now 42 lines long.
+        function md5(inputString) {
+          var hc = "0123456789abcdef";
+          function rh(n) {
+            var j,
+              s = "";
+            for (j = 0; j <= 3; j++)
+              s +=
+                hc.charAt((n >> (j * 8 + 4)) & 0x0f) +
+                hc.charAt((n >> (j * 8)) & 0x0f);
+            return s;
+          }
+          function ad(x, y) {
+            var l = (x & 0xffff) + (y & 0xffff);
+            var m = (x >> 16) + (y >> 16) + (l >> 16);
+            return (m << 16) | (l & 0xffff);
+          }
+          function rl(n, c) {
+            return (n << c) | (n >>> (32 - c));
+          }
+          function cm(q, a, b, x, s, t) {
+            return ad(rl(ad(ad(a, q), ad(x, t)), s), b);
+          }
+          function ff(a, b, c, d, x, s, t) {
+            return cm((b & c) | (~b & d), a, b, x, s, t);
+          }
+          function gg(a, b, c, d, x, s, t) {
+            return cm((b & d) | (c & ~d), a, b, x, s, t);
+          }
+          function hh(a, b, c, d, x, s, t) {
+            return cm(b ^ c ^ d, a, b, x, s, t);
+          }
+          function ii(a, b, c, d, x, s, t) {
+            return cm(c ^ (b | ~d), a, b, x, s, t);
+          }
+          function sb(x) {
+            var i;
+            var nblk = ((x.length + 8) >> 6) + 1;
+            var blks = new Array(nblk * 16);
+            for (i = 0; i < nblk * 16; i++) blks[i] = 0;
+            for (i = 0; i < x.length; i++)
+              blks[i >> 2] |= x.charCodeAt(i) << ((i % 4) * 8);
+            blks[i >> 2] |= 0x80 << ((i % 4) * 8);
+            blks[nblk * 16 - 2] = x.length * 8;
+            return blks;
+          }
+          var i,
+            x = sb(inputString),
+            a = 1732584193,
+            b = -271733879,
+            c = -1732584194,
+            d = 271733878,
+            olda,
+            oldb,
+            oldc,
+            oldd;
+          for (i = 0; i < x.length; i += 16) {
+            olda = a;
+            oldb = b;
+            oldc = c;
+            oldd = d;
+            a = ff(a, b, c, d, x[i + 0], 7, -680876936);
+            d = ff(d, a, b, c, x[i + 1], 12, -389564586);
+            c = ff(c, d, a, b, x[i + 2], 17, 606105819);
+            b = ff(b, c, d, a, x[i + 3], 22, -1044525330);
+            a = ff(a, b, c, d, x[i + 4], 7, -176418897);
+            d = ff(d, a, b, c, x[i + 5], 12, 1200080426);
+            c = ff(c, d, a, b, x[i + 6], 17, -1473231341);
+            b = ff(b, c, d, a, x[i + 7], 22, -45705983);
+            a = ff(a, b, c, d, x[i + 8], 7, 1770035416);
+            d = ff(d, a, b, c, x[i + 9], 12, -1958414417);
+            c = ff(c, d, a, b, x[i + 10], 17, -42063);
+            b = ff(b, c, d, a, x[i + 11], 22, -1990404162);
+            a = ff(a, b, c, d, x[i + 12], 7, 1804603682);
+            d = ff(d, a, b, c, x[i + 13], 12, -40341101);
+            c = ff(c, d, a, b, x[i + 14], 17, -1502002290);
+            b = ff(b, c, d, a, x[i + 15], 22, 1236535329);
+            a = gg(a, b, c, d, x[i + 1], 5, -165796510);
+            d = gg(d, a, b, c, x[i + 6], 9, -1069501632);
+            c = gg(c, d, a, b, x[i + 11], 14, 643717713);
+            b = gg(b, c, d, a, x[i + 0], 20, -373897302);
+            a = gg(a, b, c, d, x[i + 5], 5, -701558691);
+            d = gg(d, a, b, c, x[i + 10], 9, 38016083);
+            c = gg(c, d, a, b, x[i + 15], 14, -660478335);
+            b = gg(b, c, d, a, x[i + 4], 20, -405537848);
+            a = gg(a, b, c, d, x[i + 9], 5, 568446438);
+            d = gg(d, a, b, c, x[i + 14], 9, -1019803690);
+            c = gg(c, d, a, b, x[i + 3], 14, -187363961);
+            b = gg(b, c, d, a, x[i + 8], 20, 1163531501);
+            a = gg(a, b, c, d, x[i + 13], 5, -1444681467);
+            d = gg(d, a, b, c, x[i + 2], 9, -51403784);
+            c = gg(c, d, a, b, x[i + 7], 14, 1735328473);
+            b = gg(b, c, d, a, x[i + 12], 20, -1926607734);
+            a = hh(a, b, c, d, x[i + 5], 4, -378558);
+            d = hh(d, a, b, c, x[i + 8], 11, -2022574463);
+            c = hh(c, d, a, b, x[i + 11], 16, 1839030562);
+            b = hh(b, c, d, a, x[i + 14], 23, -35309556);
+            a = hh(a, b, c, d, x[i + 1], 4, -1530992060);
+            d = hh(d, a, b, c, x[i + 4], 11, 1272893353);
+            c = hh(c, d, a, b, x[i + 7], 16, -155497632);
+            b = hh(b, c, d, a, x[i + 10], 23, -1094730640);
+            a = hh(a, b, c, d, x[i + 13], 4, 681279174);
+            d = hh(d, a, b, c, x[i + 0], 11, -358537222);
+            c = hh(c, d, a, b, x[i + 3], 16, -722521979);
+            b = hh(b, c, d, a, x[i + 6], 23, 76029189);
+            a = hh(a, b, c, d, x[i + 9], 4, -640364487);
+            d = hh(d, a, b, c, x[i + 12], 11, -421815835);
+            c = hh(c, d, a, b, x[i + 15], 16, 530742520);
+            b = hh(b, c, d, a, x[i + 2], 23, -995338651);
+            a = ii(a, b, c, d, x[i + 0], 6, -198630844);
+            d = ii(d, a, b, c, x[i + 7], 10, 1126891415);
+            c = ii(c, d, a, b, x[i + 14], 15, -1416354905);
+            b = ii(b, c, d, a, x[i + 5], 21, -57434055);
+            a = ii(a, b, c, d, x[i + 12], 6, 1700485571);
+            d = ii(d, a, b, c, x[i + 3], 10, -1894986606);
+            c = ii(c, d, a, b, x[i + 10], 15, -1051523);
+            b = ii(b, c, d, a, x[i + 1], 21, -2054922799);
+            a = ii(a, b, c, d, x[i + 8], 6, 1873313359);
+            d = ii(d, a, b, c, x[i + 15], 10, -30611744);
+            c = ii(c, d, a, b, x[i + 6], 15, -1560198380);
+            b = ii(b, c, d, a, x[i + 13], 21, 1309151649);
+            a = ii(a, b, c, d, x[i + 4], 6, -145523070);
+            d = ii(d, a, b, c, x[i + 11], 10, -1120210379);
+            c = ii(c, d, a, b, x[i + 2], 15, 718787259);
+            b = ii(b, c, d, a, x[i + 9], 21, -343485551);
+            a = ad(a, olda);
+            b = ad(b, oldb);
+            c = ad(c, oldc);
+            d = ad(d, oldd);
+          }
+          return rh(a) + rh(b) + rh(c) + rh(d);
+        }
+        document.querySelector("#status").innerHTML = "";
+        if (set.infoSource) src = text;
+        // 不支持 https://openuserjs.org/libs/sizzle/GM_config/source 这种嵌套格式
+        function splitHeader(hstart, hend) {
+          let start = body.indexOf(hstart),
+            delim = body.indexOf(hend);
+          if (start > -1 && delim > -1) {
+            header.push(
+              ...body
+                .slice(start, delim - 1)
+                .replace(/\r+/g, "")
+                .replace(/\n\s+/g, "\n")
+                .split("\n")
+            );
+            if (hstart == "// ==UserScript==") {
+              metat = body.slice(start, delim + hend.length); // TM 标准
+            }
+            body = body.slice(0, start) + body.slice(delim + hend.length + 1);
+            return true;
+          } else return false;
+        }
+        body = text;
+        if (!splitHeader("// ==UserScript==", "// ==/UserScript==")) {
+          pushInfo(3, "这不是油猴脚本");
+          return;
+        }
+        splitHeader("// ==OpenUserJS==", "// ==/OpenUserJS=="); // OpenUserJS
+        if (splitHeader("// ==UserLibrary==", "// ==/UserLibrary==")) {
+          lib = true;
+          if (!confirm("这是个库，要继续转换么 ?")) {
+            ret("#p1");
+            return;
+          }
+        } // OpenUserJS
+        header.forEach(function (h) {
+          let hl = h.replace(/[ \t]+/g, " ").split(" ");
+          if (!hl[1]) return;
+          if (hl[1].slice(0, 1) == "@") {
+            if (!meta[hl[1].slice(1)]) {
+              meta[hl[1].slice(1)] = hl.slice(2).join(" ");
+            } else if (meta[hl[1].slice(1)] instanceof Array) {
+              meta[hl[1].slice(1)].push(hl.slice(2).join(" "));
+            } else {
+              oldMetaValue = meta[hl[1].slice(1)];
+              meta[hl[1].slice(1)] = [oldMetaValue, hl.slice(2).join(" ")];
+            }
+          }
+          switch (hl[1]) {
+            case "@name":
+            case (hl[1].match(/^@name:.*$/) || {}).input:
+              pushInfo(0, `脚本名称: ${hl.slice(2).join(" ")}`);
+              switch (hl[1]) {
+                case "@name:zh-CN":
+                  name[0] = hl.slice(1).join(" ");
+                  break;
+                case "@name:zh":
+                  name[1] = hl.slice(1).join(" ");
+                  break;
+                case "@name":
+                  name[2] = hl.slice(1).join(" ");
+                  break;
+                case "@name:en":
+                  name[3] = hl.slice(1).join(" ");
+                  break;
+              }
+              break;
+            case "@version":
+            case "@uso:version": // userscripts.org
+              info.script.version = hl.slice(2).join(" ");
+              pushInfo(0, `脚本版本: ${info.script.version}`);
+              break;
+            case "@major":
+              pushInfo(0, `主版本: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@minor":
+              pushInfo(0, `次版本: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@build":
+              pushInfo(0, `编译版本: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@developer": // Scriptish
+            case "@contributor": // Scriptish
+            case "@collaborator": // OpenUserJS
+            case "@oujs:collaborator": // OpenUserJS
+              pushInfo(0, `参与创作: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@author":
+            case "@oujs:author": // OpenUserJS
+              info.script.author = hl.slice(2).join(" ");
+              pushInfo(0, `脚本作者: ${info.script.author}`);
+              break;
+            case "@create": // 非标准
+            case "@created": // 非标准
+              pushInfo(0, `创建时间: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@modified": // 非标准
+            case "@lastmodified": // 非标准
+            case "@lastUpdated": // 非标准
+            case "@update": // 非标准
+            case "@uso:timestamp": // userscripts.org
+              pushInfo(0, `更新时间: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@date": // 非标准
+              pushInfo(0, `创建或更新时间: ${hl.slice(2).join(" ")}`);
+              break;
+            case (hl[1].match(/^@description.*$/) || {}).input:
+              pushInfo(0, `脚本介绍: ${hl.slice(2).join(" ")}`);
+              switch (hl[1]) {
+                case "@description:zh-CN":
+                  desp[0] = hl.slice(1).join(" ");
+                  break;
+                case "@description:zh":
+                  desp[1] = hl.slice(1).join(" ");
+                  break;
+                case "@description":
+                  desp[2] = hl.slice(1).join(" ");
+                  break;
+                case "@description:en":
+                  desp[3] = hl.slice(1).join(" ");
+                  break;
+              }
+              break;
+            case "@namespace":
+              info.script.namespace = hl.slice(2).join(" ");
+              pushInfo(0, `命名空间: ${info.script.namespace}`);
+              break;
+            case "@id": // Scriptish
+            case "@uso:script": // userscripts.org
+            case "@uniquescriptname": // 非标准
+              pushInfo(0, `唯一标识: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@storageName": // ScriptCat 脚本猫
+              nmToken = hl.slice(2).join(" ");
+              pushInfo(0, `存储值命名空间: ${nmToken}`);
+              break;
+            case "@uso:hash": // userscripts.org
+              pushInfo(0, `校验 SHA-1: ${hl.slice(2).join(" ")}`);
+              pushInfo(2, "暂不支持校验脚本，忽略");
+              break;
+            case "@uso:installs": // userscripts.org
+              pushInfo(0, `安装人数: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@uso:rating": // userscripts.org
+              pushInfo(0, `评分: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@uso:reviews": // userscripts.org
+              pushInfo(0, `测评人数: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@uso:discussions": // userscripts.org
+              pushInfo(0, `评论人数: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@uso:fans": // userscripts.org
+              pushInfo(0, `关注人数: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@uso:unlisted": // userscripts.org
+              pushInfo(0, "此脚本已被撤下平台");
+              break;
+            case "@filename": // 非标准
+            case "@filename-opera": // 非标准
+              pushInfo(0, `脚本文件名: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@license": // Greasy Fork
+            case "@licence": // OpenUserJS
+              lic = hl.slice(2).join(" ");
+              break;
+            case "@copyright": // 非标准
+              info.script.copyright = hl.slice(2).join(" ");
+              pushInfo(0, `版权归属: ${info.script.copyright}`);
+              break;
+            case "@attribution":
+              pushInfo(0, `版权归属: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@homepage":
+            case "@homepageURL":
+            case "@website":
+            case "@home-url": // 非标准
+            case "@home-url2": // 非标准
+              info.script.homepage = hl.slice(2).join(" ");
+              pushInfo(
+                0,
+                `脚本主页: <a href='${info.script.homepage}'>${info.script.homepage}</a>`,
+                true
+              );
+              break;
+            case "@source":
+              pushInfo(0, `脚本源代码页面: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@updateURL":
+            case "@downloadURL":
+            case "@installURL":
+              pushInfo(
+                0,
+                `脚本更新地址: <a href='${hl.slice(2).join(" ")}'>${hl
+                  .slice(2)
+                  .join(" ")}</a>`,
+                true
+              );
+              switch (hl[1]) {
+                case "@updateURL":
+                  info.script.updateURL = hl.slice(2).join(" ");
+                  break;
+                case "@downloadURL":
+                  info.script.downloadURL = hl.slice(2).join(" ");
+                  break;
+              }
+              break;
+            case "@supportURL":
+            case "@feedback-url": // 非标准
+              pushInfo(
+                0,
+                `支持页面: <a href='${hl.slice(2).join(" ")}'>${hl
+                  .slice(2)
+                  .join(" ")}</a>`,
+                true
+              );
+              if (hl[1] == "@supportURL")
+                info.script.supportURL = hl.slice(2).join(" ");
+              break;
+            case "@optionsURL": // userChromeJS
+              pushInfo(
+                0,
+                `配置页面: <a href='${hl.slice(2).join(" ")}'>${hl
+                  .slice(2)
+                  .join(" ")}</a>`,
+                true
+              );
+            case "@mail": // 非标准
+              pushInfo(0, `作者邮箱: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@note": // 非标准
+            case "@x-note": // 非标准
+              pushInfo(0, `说明: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@encoding": // 非标准
+            case "@charset": // 非标准
+              pushInfo(2, `内容编码: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@contributionURL": // Scriptish
+              pushInfo(
+                0,
+                `捐赠地址: <a href='${hl.slice(2).join(" ")}'>${hl
+                  .slice(2)
+                  .join(" ")}</a>`,
+                true
+              );
+              break;
+            case "@contributionAmount": // Scriptish
+              pushInfo(0, `建议捐赠金额: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@original-script": // 非标准
+            case "@attribution": // 非标准
+              pushInfo(0, `原始脚本: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@original-author": // 非标准
+              pushInfo(0, `原始脚本作者: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@original-license": // 非标准
+              pushInfo(0, `原始脚本发布协议: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@original-changes": // 非标准
+              pushInfo(0, `对原始脚本的更改: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@definition": // ScriptCat 脚本猫
+              pushInfo(0, `TS 声明文件: ${hl.slice(2).join(" ")}`);
+              break;
+            case "@jsversion": // Scriptish
+              pushInfo(0, `所需 JS 标准版本: ${hl[2]}`);
+              break;
+            case "@compatible": // Greasy Fork
+            case "@compatibility": // UserScriptLoader
+              pushInfo(0, `兼容 ${hl[2]} 浏览器，${hl.slice(3).join(" ")}`);
+              break;
+            case "@incompatible": // Greasy Fork
+              pushInfo(0, `不兼容 ${hl[2]} 浏览器，${hl.slice(3).join(" ")}`);
+              break;
+            // case '@nocompat': // 到底是兼容还是不兼容 ？
+            case "@priority": // Scriptish
+            case "@weight": // Userscripts
+              pushInfo(0, `脚本优先级: ${hl[2]} ，忽略`);
+              break;
+            case "@noframes":
+              pushInfo(0, "不应在 iframe 中执行此脚本");
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@unwrap":
+              pushInfo(0, "关闭油猴封装，作为普通脚本使用");
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@allFrames": // FireMonkey
+              pushInfo(0, "应在所有 (包括跨域) 的 iframe 中都执行此脚本");
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@unstableMinify": // OpenUserJS
+              pushInfo(0, `这个脚本压缩后不稳定，原因: ${hl[2]}`);
+              break;
+            case "@startup": // userChromeJS
+              pushInfo(0, `启动浏览器时，执行: ${hl[2]}`);
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@shutdown": // userChromeJS
+              pushInfo(0, `关闭浏览器时，执行: ${hl[2]}`);
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@background": // ScriptCat 脚本猫
+              pushInfo(0, "这个脚本是后台脚本");
+              pushInfo(3, "无法支持后台脚本");
+              break;
+            case "@crontab": // ScriptCat 脚本猫
+              pushInfo(0, `定时脚本表达式: ${hl[2]}`);
+              pushInfo(3, "无法支持定时脚本");
+              break;
+            case "@onlyonce": // userChromeJS
+              pushInfo(0, `不应重复运行`);
+              runOnce = true;
+              break;
+            case "@icon":
+            case "@iconURL":
+            case "@defaulticon":
+            case "@icon64":
+            case "@icon64URL":
+            case "@screenshot": // Scriptish
+              pushInfo(0, hl[1] == "@screenshot" ? "截图:" : "图标:");
+              if (set.infoIcon) {
+                if (hl[1] == "@icon" || hl[1] == "@iconURL")
+                  info.script.icon = hl.slice(2).join(" ");
+                if (hl[1] == "@icon64" || hl[1] == "@icon64URL")
+                  info.script.icon64 = hl.slice(2).join(" ");
+              }
+              pushIcon(hl.slice(2).join(" "));
+              break;
+            case "@match":
+            case "@exclude-match":
+            case "@matches": // FireMonkey
+            case "@excludeMatches": // FireMonkey
+            case "@unmatch": // UserScriptLoader
+              isBlack =
+                hl[1] == "@exclude-match" ||
+                hl[1] == "@excludeMatches" ||
+                hl[1] == "@unmatch";
+              mr = hl.slice(2).join(" ");
+              if (mr != "*://*/*" && mr != "http://*/*" && mr != "https://*/*")
+                validrule++;
+              pushInfo(0, `${isBlack ? "黑" : "白"}名单规则: ${mr}`);
+              mr = match2Regexp(hl.slice(2).join(" "));
+              if (typeof mr == "object") {
+                if (isBlack) {
+                  black.push(mr.toString());
+                  info.script.excludeMatches.push(hl.slice(2).join(" "));
+                } else {
+                  white.push(mr.toString());
+                  info.script.matches.push(hl.slice(2).join(" "));
+                }
+              } else pushInfo(2, "规则导入失败");
+              break;
+            case "@includeGlob": // FireMonkey
+            case "@excludeGlob": // FireMonkey
+            case "@includeGlobs": // FireMonkey
+            case "@excludeGlobs": // FireMonkey
+              isBlack = hl[1] == "@excludeGlob" || hl[1] == "@excludeGlobs";
+              mr = hl.slice(2).join(" ");
+              if (
+                mr != "*://*/*" &&
+                mr != "http://*/*" &&
+                mr != "https://*/*" &&
+                mr != "*"
+              )
+                validrule++;
+              pushInfo(0, `${isBlack ? "黑" : "白"}名单规则: ${mr}`);
+              mr = include2Regexp(hl.slice(2).join(" "));
+              if (typeof mr == "object") {
+                if (isBlack) {
+                  black.push(mr.toString());
+                  info.script.excludeGlobs.push(hl.slice(2).join(" "));
+                } else {
+                  white.push(mr.toString());
+                  info.script.includeGlobs.push(hl.slice(2).join(" "));
+                }
+              } else pushInfo(2, "规则导入失败");
+              break;
+            case "@include":
+            case "@exclude":
+              mr = hl.slice(2).join(" ");
+              if (
+                mr != "*://*/*" &&
+                mr != "http://*/*" &&
+                mr != "https://*/*" &&
+                mr != "/.*/" &&
+                mr != "/.+/" &&
+                mr != "*"
+              )
+                validrule++;
+              pushInfo(
+                0,
+                `${hl[1] == "@exclude" ? "黑" : "白"}名单规则: ${mr}`
+              );
+              mr = include2Regexp(hl.slice(2).join(" "));
+              if (typeof mr == "object") {
+                if (hl[1] == "@exclude") {
+                  black.push(mr.toString());
+                  info.script.excludes.push(hl.slice(2).join(" "));
+                } else {
+                  white.push(mr.toString());
+                  info.script.includes.push(hl.slice(2).join(" "));
+                }
+              } else pushInfo(2, "规则导入失败");
+              break;
+            case "@matchAboutBlank": // FireMonkey
+              pushInfo(0, "在 about: 页面执行此脚本");
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@require":
+              pushInfo(0, `脚本依赖: ${hl.slice(2).join(" ")}`);
+              pushInfo(
+                2,
+                "如果目标网站设置了 CSP，脚本依赖可能无法加载，从而导致脚本无法运行"
+              );
+              switch (hl[2]) {
+                case "bootstrap-4":
+                  cssload.push(
+                    lcdn + "twitter-bootstrap/4.6.1/js/bootstrap.min.css"
+                  );
+                  info.script.require.push(
+                    lcdn + "twitter-bootstrap/4.6.1/js/bootstrap.bundle.min.js"
+                  );
+                  break;
+                case "bootstrap-5":
+                  cssload.push(
+                    lcdn + "twitter-bootstrap/5.1.3/js/bootstrap.min.css"
+                  );
+                  info.script.require.push(
+                    lcdn + "twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"
+                  );
+                  break;
+                case "jquery-1":
+                  info.script.require.push(
+                    lcdn + "jquery/1.12.4/jquery.min.js"
+                  );
+                  break;
+                case "jquery-2":
+                  info.script.require.push(lcdn + "jquery/2.2.4/jquery.min.js");
+                  break;
+                case "jquery-3":
+                  info.script.require.push(lcdn + "jquery/3.6.0/jquery.min.js");
+                  break;
+                case "jquery-1":
+                  info.script.require.push(
+                    lcdn + "jquery/1.12.4/jquery.min.js"
+                  );
+                  break;
+                case "jquery-ui-1":
+                  cssload.push(lcdn + "jqueryui/1.12.1/jquery-ui.min.css");
+                  info.script.require.push(
+                    lcdn + "jqueryui/1.12.1/jquery-ui.min.js"
+                  );
+                  break;
+                case "underscore-1":
+                  info.script.require.push(
+                    lcdn + "underscore.js/1.13.2/underscore.min.js"
+                  );
+                  break;
+                case "moment-2":
+                  info.script.require.push(
+                    lcdn + "moment.js/2.29.1/moment-with-locales.min.js"
+                  );
+                  break;
+                case (hl[2].match(/^http(s?):\/\/.*$/) || {}).input:
+                  info.script.require.push(hl.slice(2).join(" "));
+                  break;
+                default:
+                  pushInfo(3, "不支持引用其它油猴脚本");
+              }
+              break;
+            case "@resource":
+              let key = hl[2],
+                rs = hl.slice(3).join(" ");
+              rs = rs.split("#")[0]; // 忽略 SRI
+              pushInfo(0, `脚本资源: ${key} : ${rs}`);
+              info.script.resources.push({
+                name: key,
+                url: rs,
+              });
+              res.push(key);
+              break;
+            case "@css": // Scriptish
+            case "@require-css": // ScriptCat 脚本猫
+              pushInfo(0, `载入样式: ${hl.slice(2).join(" ")}`);
+              pushInfo(2, "无法绕过 CSP");
+              cssload.push(hl.slice(2).join(" "));
+              break;
+            case "@connect":
+            case "@domain": // Scriptish
+              pushInfo(0, `连接外部站点: ${hl.slice(2).join(" ")}`);
+              pushInfo(2, "如果此站点需要跨域，脚本可能会出错无法运行");
+              info.script.connect.push(hl.slice(2).join(" "));
+              break;
+            case "@webRequest":
+              pushInfo(0, `请求规则: ${hl.slice(2).join(" ")}`);
+              pushInfo(2, "目前不支持，但会加入元数据");
+              info.script.webRequest = JSON.parse(hl.slice(2).join(" "));
+              break;
+            case "@inject-into":
+              pushInfo(0, `注入域: ${hl[2]}`);
+              if (hl[2] == "content") pushInfo(3, "不支持 Content script");
+              break;
+            case "@container": // FireMonkey
+              pushInfo(0, `注入容器: ${hl[2]}`);
+              pushInfo(2, "目前不支持，忽略");
+              break;
+            case "@run-at":
+            case "@runAt": // FireMonkey
+              pushInfo(0, `运行时机: ${hl[2]}`);
+              pushInfo(2, "运行时机只是模拟，和插件的效果并不完全一致");
+              info.script.runAt = hl[2];
+              info.script["run-at"] = hl[2];
+              // https://github.com/scriptish/scriptish/blob/master/extension/modules/manager.js
+              switch (hl[2]) {
+                /* 立即 */
+                case "document-start":
+                  load = 0;
+                  break;
+                /* readyState === 'complete' */
+                case "document-body":
+                  load = 1;
+                  break;
+                /* DOMContentLoaded */
+                case "document-end":
+                  load = 2;
+                  break;
+                /* readyState === 'interactive' */
+                // Scriptish
+                case "document-complete":
+                  load = 3;
+                  break;
+                /* window.onload */
+                // Scriptish
+                case "window-load":
+                  load = 4;
+                  break;
+                case "context-menu":
+                case "main-menu": // X 浏览器
+                case "tool-menu": // X 浏览器
+                case "document-menu": // ScriptCat 脚本猫
+                  pushInfo(2, "这是手动触发脚本，不建议安装");
+                case "document-idle":
+                default:
+                  load = 4;
+                  delay = 500;
+              }
+              break;
+            case "@delay": // Scriptish
+              pushInfo(0, `执行延时: ${hl[2]} 毫秒`);
+              delay = parseInt(hl[2]);
+              break;
+            case "@type": // X 浏览器
+              pushInfo(0, `X 浏览器特有属性 @type ${hl[2]}`);
+            case "@bookmarklet": // UserScriptLoader
+              pushInfo(0, "作为脚本书签运行");
+              pushInfo(0, "不支持，忽略");
+              break;
+            case "m-script-end": // M 浏览器
+              pushInfo(0, `M 浏览器标记`);
+              break;
+            case "@antifeature":
+            case "@antifeature:zh":
+            case "@antifeature:zh-CN":
+              let af = hl.slice(2);
+              pushInfo(0, `额外行为: ${af[0]}`);
+              switch (af[0]) {
+                case "ads":
+                  pushInfo(2, `包含广告: ${hl.slice(3).join(" ")}`);
+                  break;
+                case "tracking":
+                  pushInfo(2, `包含跟踪或统计代码: ${hl.slice(3).join(" ")}`);
+                  break;
+                case "miner":
+                  pushInfo(2, `包含挖矿代码: ${hl.slice(3).join(" ")}`);
+                  break;
+                case "membership": // Greasy Fork
+                  pushInfo(2, `需要加入或订阅: ${hl.slice(3).join(" ")}`);
+                  break;
+                case "payment": // Greasy Fork
+                  pushInfo(2, `需要付费: ${hl.slice(3).join(" ")}`);
+                  break;
+                case "referral-link": // Greasy Fork
+                  pushInfo(2, `引荐链接: ${hl.slice(3).join(" ")}`);
+                  break;
+                default: // 非标准自定义
+                  pushInfo(2, `${hl.slice(2).join(" ")}`);
+                  break;
+              }
+              pushInfo(0, "如果你对此介意，请不要使用此脚本");
+              break;
+            case "@grant":
+              if (hl[2] !== "none") {
+                if (hl[3] && hl[3] !== "") {
+                  // Scriptish
+                  hl.slice(2).forEach((api) => {
+                    grantCheck(api);
+                  });
+                } else {
+                  grantCheck(hl[2]);
+                }
+              } else {
+                pushInfo(1, "此脚本不需要任何 API");
+              }
+          }
+        });
+        if (set.noRunAt) {
+          load = 0;
+          delay = 0;
+        }
+        info.script.grant = apis;
+        meta.grant = apis;
+
+        name = name.flat();
+        info.script.name = name[0].match(/ .*/)[0].slice(1);
+        namet = ` * @name: ${info.script.name}\n`;
+
+        desp = desp.flat();
+        info.script.description = desp[0].match(/ .*/)[0].slice(1);
+        despt = ` * @description: ${info.script.description}\n`;
+
+        if (!nmToken)
+          nmToken = md5(
+            `${info.script.namespace ? info.script.namespace : ""}${name[0]}`
+          );
+
+        if (window.via && body.indexOf("//") >= 0) {
+          pushInfo(2, "脚本内容可能存在行内注释，旧版 Via 可能无法使用");
+        }
+        if (
+          apis.length == 0 &&
+          info.script.require.length == 0 &&
+          info.script.resources.length == 0 &&
+          cssload.length == 0 &&
+          (!info.script.runAt || info.script.runAt == "document-start") &&
+          delay == 0
+        ) {
+          if (validrule == 0) {
+            pushInfo(1, "这个脚本看起来不需要转换");
+            pushInfo(1, "直接使用原脚本代码试试吧 :)");
+          } else if (black.length == 0) {
+            pushInfo(1, "这个脚本只需要上面的白名单规则，它也许不需要转换");
+            pushInfo(1, "直接使用原脚本代码试试吧 :)");
+          }
+        }
+        pushInfo(0, `发布协议: ${lic ? lic : "禁止二次分发"}`);
+        if (info.script.resources.length == 0) {
+          buildBody();
+        } else {
+          new Promise(async (resolve) => {
+            let t = info.script.resources.length - 1,
+              i = 0;
+            for (let r of info.script.resources) {
+              await fetch(set.corsSrv + r.url).then(
+                async function (p) {
+                  if (p.ok) {
+                    pushInfo(
+                      1,
+                      `脚本资源 ${i + 1}/${t + 1} ${
+                        r.name
+                      } 获取成功，正在处理内容...`
+                    );
+                    let type = p.headers.get("Content-Type").replace(/ /g, ""),
+                      pp = p.clone();
+                    if (type !== "") {
+                      info.script.resources[i].meta = type;
+                      info.script.resources[i].mimetype = type;
+                    }
+                    await p.arrayBuffer().then(function (ab) {
+                      if (ab.byteLength > 0) {
+                        try {
+                          info.script.resources[i].data = `data:${
+                            type !== "" ? `${type};` : ""
+                          }base64,${btoa(
+                            String.fromCharCode.apply(null, new Uint8Array(ab))
+                          )}`;
+                        } catch (e) {
+                          console.error(e);
+                          pushInfo(
+                            2,
+                            "内容处理失败，无法正确返回 GM_getResourceURL"
+                          );
+                        }
+                      }
+                    });
+                    await pp.text().then(function (pt) {
+                      info.script.resources[i].content = pt;
+                      if (!pt || pt == "")
+                        pushInfo(
+                          2,
+                          "内容处理失败，无法使用 GM_getResourceText"
+                        );
+                    });
+                    if (i == t) resolve();
+                  } else {
+                    pushInfo(
+                      2,
+                      `脚本资源 ${i + 1}/${t + 1} ${r.name} 获取失败，${
+                        p.status
+                      }`
+                    );
+                    if (i == t) resolve();
+                  }
+                },
+                function (e) {
+                  pushInfo(
+                    2,
+                    `脚本资源 ${i + 1}/${t + 1} ${r.name} 获取失败，${
+                      e.message
+                    }`
+                  );
+                  pushInfo(
+                    2,
+                    "如果脚本运行必须得到此资源，那么转换后的脚本将会无法正常运行"
+                  );
+                  if (i == t) resolve();
+                }
+              );
+              i++;
+            }
+          }).then(buildBody);
+        }
+        async function buildCode() {
+          if (info.script.require.length > 0 && inclReq) {
+            await new Promise(async (resolve) => {
+              let t = info.script.require.length - 1,
+                ok = 0,
+                i = 0;
+              for (let r of info.script.require) {
+                await fetch(set.corsSrv + r).then(
+                  async function (p) {
+                    if (p.ok) {
+                      ok++;
+                      await p.text().then(function (pt) {
+                        if (!pt || pt == "") {
+                          pushInfo(
+                            2,
+                            `脚本依赖库 ${i + 1}/${t + 1} ${r} 内容处理失败`
+                          );
+                          inclReq = false;
+                        } else {
+                          pushInfo(
+                            1,
+                            `脚本依赖库 ${i + 1}/${t + 1} ${r} 内容处理成功`
+                          );
+                          reqsrc += `
+/* ${r} 开始 */
+${pt}
+/* ${r} 结束 */
+`;
+                        }
+                        ok--;
+                      });
+                      if (i == t && ok == 0) resolve();
+                    } else {
+                      pushInfo(
+                        2,
+                        `脚本依赖库 ${i + 1}/${t + 1} ${r} 获取失败，${
+                          p.status
+                        }`
+                      );
+                      inclReq = false;
+                      if (i == t && ok == 0) resolve();
+                    }
+                  },
+                  function (e) {
+                    pushInfo(
+                      2,
+                      `脚本依赖库 ${i + 1}/${t + 1} ${r} 获取失败，${e.message}`
+                    );
+                    inclReq = false;
+                    if (i == t && ok == 0) resolve();
+                  }
+                );
+                i++;
+              }
+            });
+          }
+          return `${
+            set.head == 2
+              ? `/*
+${namet} * @Author: ${info.script.author}
+ * @version: ${info.script.version}
+${despt} */`
+              : set.head == 1
+              ? metat
+              : ""
+          }${
+            orig !== ""
+              ? `/* 原脚本地址:
+${orig}
+*/`
+              : ""
+          }
+;(function(){
+  let __$nmObj = {
+        name: ${JSON.stringify(info.script.name)},
+        req: ${JSON.stringify(info.script.require)},
+        white: ${JSON.stringify(white)},
+        black: ${JSON.stringify(black)},
+        vclk: [],
+        vclb: [],
+        run: true,
+        rex: e => new RegExp(e.slice(1).slice(0,-1)),
+        menu: [],
+        token: ${JSON.stringify(nmToken)},
+        cmdBox: null,
+        urlChangeCall: null,
+        corsSrv: '${set.xhrCorsSrv}',
+      }, unsafeWindow=window, GM={};
+${
+  runOnce
+    ? `
+  if (typeof window['nmMutex'+__$nmObj.token]=='boolean') return 0;
+  window['nmMutex'+__$nmObj.token] = true;
+`
+    : ""
+}
+  __$nmObj.black.forEach( e => {
+    if (__$nmObj.rex(e).test(location.href)) __$nmObj.run=false;
+  })
+  if (__$nmObj.white.length>0) {
+    __$nmObj.run=false
+    __$nmObj.white.forEach( e => {
+      if (__$nmObj.rex(e).test(location.href)) __$nmObj.run=true;
+    })
+  }
+  if (!__$nmObj.run) return;
+  __$nmObj.info = JSON.parse(atob('${base64(JSON.stringify(info))}'));\
+${
+  set.infoHeader
+    ? `
+  __$nmObj.meta = atob('${base64(metat)}');
+  __$nmObj.info.scriptMetaStr = __$nmObj.meta;
+  __$nmObj.info.script.header = __$nmObj.meta;`
+    : ""
+}\
+${
+  set.infoSource
+    ? `
+  __$nmObj.info.scriptSource = atob('${base64(src)}');`
+    : ""
+}\
+  let GM_info = __$nmObj.info; GM.info = GM_info;
+${
+  cssload.length > 0
+    ? `
+  ${JSON.stringify(cssload)}.forEach( url => {
+    __$nmObj.link=document.createElement('link');
+    __$nmObj.link.rel='stylesheet'; __$nmObj.link.href=url;
+    (document.head || document.body || document.documentElement).appendChild(__$nmObj.link);
+  });`
+    : ""
+}\
+${
+  info.script.resources.length > 0
+    ? `
+  __$nmObj.res = ${JSON.stringify(res)};
+  GM_getResourceURL = k => {
+    let i = __$nmObj.res.indexOf(k);
+    if (i>=0) {
+      if (__$nmObj.info.script.resources[i].data) {
+        return __$nmObj.info.script.resources[i].data;
+      } else {
+        return __$nmObj.info.script.resources[i].url;
+      }
+    } else {
+      return '';
+    }
+  };
+  GM_getResourceText = k => {
+    let i = __$nmObj.res.indexOf(k);
+    if (i>=0) {
+      if (__$nmObj.info.script.resources[i].content) {
+        return __$nmObj.info.script.resources[i].content;
+      } else {
+        return '';
+      }
+    } else {
+      return '';
+    }
+  };
+  GM.getResourceUrl = k => Promise.resolve(GM_getResourceURL(k));`
+    : ""
+}\
+${
+  apis.includes("GM_registerMenuCommand") ||
+  apis.includes("GM.registerMenuCommand")
+    ? `
+  ${'function bextButton(t){let e=Object.assign({click:null,textStyle:{fontWeight:900}},t),n=(t,e)=>{let n=document.createElement("style");return"string"==typeof t&&(n.id=i.button.id+"_"+t),n.textContent=e,n},o=document.createElement("div"),i={idFlag:"bextBtn_",styleParent:null,ms:[],movePosition:[],button:null,text:null,textStyle:null,event:[],genMovePosStyle:t=>n("posStyle",`#${i.button.id} {top: ${t[0]}px;bottom: auto;left: ${t[1]}px;right: auto;margin: .5em;}`),pushStyle:()=>{i.styleParent&&i.ms.forEach((t,e)=>{i.styleParent.querySelector(`#${t.id}`)||i.styleParent.appendChild(t)})},de:[t=>{i.ms[3]&&i.ms[3].remove(),i.ms[3]=n("pageLock","html, body { overflow: hidden }"),i.pushStyle(),i.movePosition=[t.touches[0].clientX-i.button.offsetLeft,t.touches[0].clientY-i.button.offsetTop]},t=>{i.ms[0]&&i.ms[0].remove();let e=i.button,n=[e.offsetHeight+parseFloat(getComputedStyle(e).marginTop)+parseFloat(getComputedStyle(e).marginBottom),e.offsetWidth+parseFloat(getComputedStyle(e).marginLeft)+parseFloat(getComputedStyle(e).marginRight)];i.ms[0]=i.genMovePosStyle([Math.max(0,Math.min(t.touches[0].clientY-i.movePosition[1],window.innerHeight-n[0])),Math.max(0,Math.min(t.touches[0].clientX-i.movePosition[0],window.innerWidth-n[1]))]),i.pushStyle()},t=>{i.ms[3]&&(i.ms[3].remove(),delete i.ms[3])}],genId:function(){let t=null;for(;!t||window.bextBtn.id.includes(t);)t=parseInt(1e9*Math.random(),10).toString(36);return window.bextBtn.id.push(t),i.idFlag+t}};return window.bextBtn||(window.bextBtn={style:null,id:[]}),window.bextBtn.style||(window.bextBtn.style=n(null,".bextBtn {all: initial;position: fixed;bottom:0;left:0;z-index: 9999999;font-size: 15px;line-height: 1.5em;text-align: center;width: max-content;height: max-content;min-width: 1.5em;min-height: 1.5em;margin: .5em;padding: .25em;border-radius: 2em;box-shadow: 2px 0 5px gray;user-select: none;background: white;}.bextBtn span {all: initial;font-size: inherit;color: black;}")),o.innerHTML=`<div id="${i.genId()}" class="bextBtn"><span>⌥</span></div>`,i.button=o.children[0],i.text=i.button.children[0],i.button.addEventListener("touchstart",i.de[0],{passive:!0}),i.button.addEventListener("touchmove",i.de[1],{passive:!0}),i.button.addEventListener("touchend",i.de[2],{passive:!0}),Object.defineProperties(i.button,{click:{get:()=>i.event[0]?i.event[0]:null,set(t){i.event[0]&&i.button.removeEventListener("click",i.event[0]),t&&"function"==typeof t&&(i.event[0]=t.bind(window,i.button),i.button.addEventListener("click",i.event[0]))}},textStyle:{get:()=>i.textStyle,set:t=>!!t&&(("object"==typeof t||"string"==typeof t)&&(i.ms[2]&&i.ms[2].remove(),"object"==typeof t&&(Object.assign(o.style,t),t=o.getAttribute("style"),o.setAttribute("style","")),i.textStyle=t,i.ms[2]=n("textStyle",`#${i.button.id} span { ${t} }`),void i.pushStyle()))},push:{value:(t=document.body,e=document.head)=>{function n(){i.styleParent=e,e.appendChild(window.bextBtn.style),i.pushStyle(),t.appendChild(i.button)}i.styleParent||(t&&e?n():window.addEventListener("load",n))}},pop:{value:()=>{i.styleParent&&(i.click=null,i.button.remove(),i.ms.forEach(t=>{t.remove()}),i.styleParent=null)}}}),Object.assign(i.button,e),i.button}'}
+  let GM_registerMenuCommand = (t,c,k) => {
+    if (!window['__nmMenu__']) {
+      window['__nmMenu__'] = {
+        button: new bextButton({
+          click: () => document.getElementById('nmMenu').showModal()
+        }),
+        dialog: () => {
+          document.body.insertAdjacentHTML('beforeend', ${"`<dialog id='nmMenu'><form method='dialog'><div id='nmScriptBox'></div><button id='nmCloseBtn' class='nmCmdItem'>关闭菜单</button></form></dialog><style>#nmMenu {width: 80vw;border-radius: 12px;border: none;text-align: center;padding: 0;margin: auto;}#nmScriptBox {height: 60vh;width: 100%;overflow: scroll;}.nmCmdItem {width: calc(100% - 1em);font-size: 14px;padding: .5em;border: none;border-bottom: 1px solid gainsboro;background: transparent;outline: none;}.nmScriptItem {width: 100%;font-size: 16px;}.nmScriptItem summary {padding: .5em 2em;background: whitesmoke;outline: none;width: calc(100% - 4em);border-bottom: 1px solid gainsboro;box-sizing: content-box;text-overflow: ellipsis;white-space: nowrap;overflow: hidden;}#nmCloseBtn{border: none;border-top: 1px solid gainsboro;font-size: 18px;}</style>`"});
+        },
+        delayBox: document.createElement('div'),
+        addScript: (name,token) => {
+          let si = document.getElementById(${"`nmScriptItem_${token}`"}),
+          di = window['__nmMenu__'].delayBox.querySelector(${"`#nmScriptItem_${token}`"});
+          if (si) { return si; } else if (di) { return di; } else {
+            let nsi = document.createElement('details'),
+            nsb = document.getElementById('nmScriptBox');
+            nsi.id = ${"`nmScriptItem_${token}`"};
+            nsi.className = 'nmScriptItem';
+            nsi.innerHTML = ${"`<summary>${name}</summary>`"};
+            if (nsb) {
+              nsb.appendChild(nsi);
+            } else {
+              window['__nmMenu__'].delayBox.appendChild(nsi);
+            }
+            return nsi;
+          }
+        },
+        addCommand: (token,name,index) => {
+          let si = document.getElementById(${"`nmScriptItem_${token}`"}),
+          di = window['__nmMenu__'].delayBox.querySelector(${"`#nmScriptItem_${token}`"});
+          let nci = document.createElement('button');
+          nci.id = ${"`nmCmdItem_${token}_${index}`"};
+          nci.className = 'nmCmdItem';
+          nci.innerHTML = name;
+          if (si && !document.getElementById(${"`nmCmdItem_${token}_${index}`"})) {
+            si.appendChild(nci);
+          } else if (di && !di.querySelector(${"`#nmCmdItem_${token}_${index}`"})) {
+            di.appendChild(nci);
+          }
+          return nci;
+        }
+      }
+      let makeMenu = function() {
+        if (document.body) {
+          window['__nmMenu__'].dialog();
+          window['__nmMenu__'].button.push();
+          if (window['__nmMenu__'].delayBox.childElementCount > 0) {
+            let osb = document.getElementById('nmScriptBox'),
+            nsb = window['__nmMenu__'].delayBox;
+            nsb.id = 'nmScriptBox';
+            osb.parentNode.replaceChild(nsb,osb);
+          }
+        } else {
+          setTimeout(makeMenu,50);
+        }
+      };
+      makeMenu();
+    }
+    __$nmObj.cmdBox = __nmMenu__.addScript(__$nmObj.name,__$nmObj.token);
+    let btn = __nmMenu__.addCommand(__$nmObj.token, t, __$nmObj.menu.length);
+    btn.onclick = c.bind(this);
+    __$nmObj.menu.push({ name: t, fn: c, btn: btn });
+    return __$nmObj.menu.length - 1;
+  };
+  
+  GM.registerMenuCommand = GM_registerMenuCommand;`
+    : ""
+}\
+${
+  apis.includes("GM_unregisterMenuCommand")
+    ? `
+  GM_unregisterMenuCommand = v => {
+    if (typeof v==='number' && __$nmObj.menu[i]) {
+      __$nmObj.menu[v].btn.remove();
+      __$nmObj.menu.splice(v,1);
+    } else {
+      __$nmObj.menu.forEach( (o,i) => {
+        if (o.name==v) {
+          __$nmObj.menu[i].btn.remove();
+          __$nmObj.menu.splice(i,1);
+        }
+      });
+    }
+  };`
+    : ""
+}\
+${
+  apis.includes("GM_renameMenuCommand")
+    ? `
+  GM_renameMenuCommand = (i,n) => {
+    if (__$nmObj.menu[i]) __$nmObj.menu[i].btn.innerHTML = n;
+  };`
+    : ""
+}\
+${
+  apis.includes("GM_enableMenuCommand")
+    ? `
+  GM_enableMenuCommand = (i) => {
+    if (__$nmObj.menu[i]) __$nmObj.menu[i].btn.disabled = false;
+  };`
+    : ""
+}\
+${
+  apis.includes("GM_disableMenuCommand")
+    ? `
+  GM_disableMenuCommand = (i) => {
+    if (__$nmObj.menu[i]) __$nmObj.menu[i].btn.disabled = true;
+  };`
+    : ""
+}\
+${
+  apis.includes("window.onurlchange")
+    ? `
+  history.pushState = ( f => function pushState(){
+    var ret = f.apply(this, arguments);
+    window.dispatchEvent(new Event('pushstate'));
+    window.dispatchEvent(new Event('urlchange'));
+    return ret;
+  })(history.pushState);
+  history.replaceState = ( f => function replaceState(){
+    var ret = f.apply(this, arguments);
+    window.dispatchEvent(new Event('replacestate'));
+    window.dispatchEvent(new Event('urlchange'));
+    return ret;
+  })(history.replaceState);
+  window.addEventListener('popstate',()=>{
+    window.dispatchEvent(new Event('urlchange'))
+  });
+  Object.defineProperty(window, 'onurlchange', {
+    get() { return __$nmObj.urlChangeCall; },
+    set(fn) {
+      if (typeof fn==='function') {
+        __$nmObj.urlChangeCall = fn;
+        window.addEventListener('urlchange', __$nmObj.urlChangeCall);
+      } else {
+        window.removeEventListener('urlchange', __$nmObj.urlChangeCall);
+        __$nmObj.urlChangeCall = null;
+      }
+    },
+  });`
+    : ""
+}\
+${
+  apis.includes("GM_setClipboard") || apis.includes("GM.setClipboard")
+    ? `
+  GM.setClipboard = t => {
+    let ha = document.createElement("textarea");
+    ha.style.cssText = "position:absolute;top:-100%";
+    ha.setAttribute("readonly", "");
+    ha.value = (typeof t=='object') ? t.content : t;
+    document.body.appendChild(ha); ha.select();
+    document.execCommand("copy"); ha.remove();
+  };
+  GM_setClipboard = t => GM.setClipboard.call(this,t);`
+    : ""
+}\
+${
+  apis.includes("GM_notification") || apis.includes("GM.notification")
+    ? `
+  GM.notification = (o,t,i,c) => {
+    let btt = bpt = bt = '',
+        ok = false, bbc = bbd = null;
+    if (typeof o=='object') {
+      btt = o.title;
+      bpt = o.text;
+      bbc = o.onclick;
+      bbd = o.ondone;
+    } else {
+      btt = t;
+      bpt = o;
+      bbc = c;
+    }
+    if (btt) bt = btt + '\\n\\n';
+    bt += bpt;
+    ok = window.confirm(bt);
+    if (bbc && ok) bbc.call(this);
+    if (bbd) bbd.call(this);
+  }
+  GM_notification = (o,t,i,c) => GM.notification.call(this,o,t,i,c);`
+    : ""
+}\
+${
+  apis.includes("GM_openInTab") || apis.includes("GM.openInTab")
+    ? `
+  GM_openInTab = (u,b) => {
+  let win = window.open(u);
+  return {
+    close() {
+      win.close();
+    },
+    focus() {
+      win.focus();
+    },
+    get closed() {
+      return win.closed;
+    },
+    set onclose(func) {
+      win.onunload = func.bind(this);
+    }
+  }
+  }
+  GM.openInTab = (u,b) => Promise.resolve(GM_openInTab(u,b));`
+    : ""
+}\
+${
+  apis.includes("GM_addStyle") || apis.includes("GM.addStyle")
+    ? `
+  GM_addStyle = (c,b) => {
+    let s = document.createElement('style');
+    s.innerText = c;
+    (document.head || document.body || document.documentElement).appendChild(s);
+    if (!!b) {
+      s.onload = b.bind(this,true);
+      s.onerror = b.bind(this,false);
+    }
+    return s;
+  }
+  GM.addStyle = (c,b) => Promise.resolve(GM_addStyle(c,b));`
+    : ""
+}\
+${
+  apis.includes("GM_addScript") || apis.includes("GM.addScript")
+    ? `
+  GM_addScript = c => {
+    let s = document.createElement('script');
+    s.textContent = c;
+    (document.head || document.body || document.documentElement).appendChild(s);
+    s.remove();
+  }
+  GM.addScript = GM_addScript;`
+    : ""
+}\
+${
+  apis.includes("GM_addElement") || apis.includes("GM.addElement")
+    ? `
+  GM.addElement = (p,t,o) => {
+    let parent = (document.body || document.documentElement),
+    type = p, obj = t, e;
+    if (!!o && !!p) {
+      parent = p;
+      type = t;
+      obj = o;
+    }
+    e = document.createElement(type);
+    Object.getOwnPropertyNames(obj).forEach( a => {
+      switch (a) {
+        case 'textContent':
+          e.innerText = obj[a];
+          break;
+        case 'value':
+          e.value = obj[a];
+          break;
+        default:
+          e.setAttribute(a, obj[a]);
+      }
+    });
+    parent.appendChild(e);
+    return e;
+  }
+  GM_addElement = (p,t,o) => GM.addElement.call(this,p,t,o);`
+    : ""
+}\
+${
+  apis.includes("GM.getValue") ||
+  apis.includes("GM.setValue") ||
+  apis.includes("GM.listValues") ||
+  apis.includes("GM.deleteValue")
+    ? `
+  GM.getValue = (k,d) => {
+  let key = 'nmValue$' + __$nmObj.token + '$' + k,
+      v = (
+      !window.localStorage.getItem(key)
+      ) ? (d!==undefined) ? d :
+      undefined : JSON.parse(window.localStorage.getItem(key))[0];
+    return Promise.resolve((v==='__$NaN') ? NaN :
+           (v==='__$UdF') ? undefined :
+           (v==='__$FnT') ? Infinity :
+           (v==='__$XnT') ? -Infinity :
+           v);
+  }
+  GM.setValue = (k,v) => {
+    return new Promise(resolve => {
+      let packed = JSON.stringify([
+        (typeof v=='function') ? v.toString() :
+        (typeof v=='number' && isNaN(v)) ? '__$NaN' :
+      (typeof v=='number' && !isFinite(v)) ?
+        (v>0) ? '__$FnT' : '__$XnT' :
+      (typeof v=='undefined') ? '__$UdF' :
+      (typeof v=='bigint') ? v.toString() : v]);
+      resolve(window.localStorage.setItem('nmValue$'+__$nmObj.token+'$'+k,packed));
+    });
+  }
+  GM.listValues = () => {
+    return new Promise(resolve => {
+      let a = [];
+      for (i=0; i<window.localStorage.length; i++) {
+        let key = window.localStorage.key(i);
+        if (key.indexOf('nmValue$'+__$nmObj.token+'$')) a.push(key);
+      }
+      resolve(a);
+    })
+  }
+  GM.deleteValue = k => {
+    return Promise.resolve(window.localStorage.removeItem('nmValue$'+__$nmObj.token+'$'+k));
+  }`
+    : ""
+}\
+${
+  apis.includes("GM_getValue") ||
+  apis.includes("GM_setValue") ||
+  apis.includes("GM_listValues") ||
+  apis.includes("GM_deleteValue")
+    ? `
+  GM_getValue = (k,d) => {
+    let key = 'nmValue$' + __$nmObj.token + '$' + k, v = (
+      !window.localStorage.getItem(key)
+      ) ? (d!==undefined) ? d :
+      undefined : JSON.parse(window.localStorage.getItem(key))[0];
+    return (v==='__$NaN') ? NaN :
+           (v==='__$UdF') ? undefined :
+           (v==='__$FnT') ? Infinity :
+           (v==='__$XnT') ? -Infinity :
+           v;
+  }
+  GM_setValue = (k,v) => {
+    let packed = JSON.stringify([
+      (typeof v=='function') ? v.toString() :
+      (typeof v=='number' && isNaN(v)) ? '__$NaN' :
+      (typeof v=='number' && !isFinite(v)) ?
+        (v>0) ? '__$FnT' : '__$XnT' :
+      (typeof v=='undefined') ? '__$UdF' :
+      (typeof v=='bigint') ? v.toString() : v]);
+    if (__$nmObj.vclk.includes(k)) {
+      let i = __$nmObj.vclk.indexOf(k), o = GM_getValue(k);
+      __$nmObj.vclb[i].call(this,k,o,v,false);
+    }
+    window.localStorage.setItem('nmValue$'+__$nmObj.token+'$'+k,packed);
+  }
+  GM_listValues = () => {
+    let a = [];
+    for (i=0; i<window.localStorage.length; i++) {
+      let key = window.localStorage.key(i);
+      if (key.indexOf('nmValue$'+__$nmObj.token+'$')) a.push(key);
+    }
+    return a;
+  }
+  GM_deleteValue = k => window.localStorage.removeItem('nmValue$'+__$nmObj.token+'$'+k);`
+    : ""
+}\
+${
+  apis.includes("GM_addValueChangeListener") ||
+  apis.includes("GM_removeValueChangeListener")
+    ? `
+  GM_addValueChangeListener = (k,c) => {
+    let n = __$nmObj.vclk.length + 1;
+    __$nmObj.vclk[n] = k;
+    __$nmObj.vclb[n] = c;
+    return n;
+  }
+  GM_removeValueChangeListener = (v) => {
+    if (__$nmObj.vclk[v]) {
+      __$nmObj.vclk[v] = undefined;
+      __$nmObj.vclb[v] = undefined;
+    }
+  }
+  window.addEventListener('storage', e => {
+    let key = e.key.replace('nmValue$'+__$nmObj.token+'$','');
+    if (__$nmObj.vclk.includes(key)) {
+      __$nmObj.vclb[__$nmObj.vclk.indexOf(key)].call(
+        this,key,e.oldValue,e.newValue,true);
+    }
+  });`
+    : ""
+}\
+${
+  apis.includes("GM_download")
+    ? `
+  GM_download = (o,n) => {
+    let a = document.createElement('a');
+    if (typeof o=='object') {
+      a.href = o.url;
+      a.download = o.name;
+      a.onclick = o.onload;
+    } else {
+      a.href = o;
+      a.download = n;
+    }
+    document.body.appendChild(a);
+    a.click(); a.remove();
+  }`
+    : ""
+}\
+${
+  apis.includes("GM_log")
+    ? `
+  GM_log = console.log;`
+    : ""
+}\
+${
+  apis.includes("GM_fetch") || apis.includes("GM.fetch")
+    ? `
+  GM_fetch = fetch;`
+    : ""
+}\
+${
+  apis.includes("GM_xmlhttpRequest") || apis.includes("GM.xmlHttpRequest")
+    ? `
+  GM.xmlHttpRequest = o => {
+    let xhr = new XMLHttpRequest, url = o.url;
+    if (url.slice(0,2)==='//') {
+      url = location.protocol + url;
+    } else if (url.slice(0,1)==='/') {
+      url = location.origin + url;
+    }
+    xhr.open(o.method,__$nmObj.corsSrv+url,true,o.user,o.password);
+    Object.assign(xhr,o);
+    if (o.headers) for (let {k:v} in o.headers) xhr.setRequestHeader(k,v);
+    xhr.send(o.data);
+  }
+  GM_xmlhttpRequest = o => GM.xmlHttpRequest.call(this,o);`
+    : ""
+}\
+${
+  apis.includes("GM_getMetadata")
+    ? `
+  GM_getMetadata = JSON.parse(unescape('${escape(JSON.stringify(meta))}'));`
+    : ""
+}\
+${
+  apis.includes("GM_xpath")
+    ? `
+  GM_xpath = function(obj) {
+    let d = document, r, sa = [], t = 9, ns = [], xr, nr = null;
+    if (typeof obj=='object') {
+      sa.push(obj.path);
+      if (obj.paths) sa = sa.concat(obj.paths);
+      if (obj.node) d = obj.node;
+      if (obj.all) t = 7;
+      if (obj.resolver) nr = obj.resolver;
+    } else {
+      sa.push(obj);
+    }
+    sa.forEach( s => {
+      xr = document.evaluate(s, d, nr, t, null);
+      if (t==7) {
+        for (let i=0; i < xr.snapshotLength; i++) {
+          ns.push(xr.snapshotItem(i));
+        }
+      } else {
+        ns.push(xr.singleNodeValue);
+      }
+    });
+    return (ns.length==1) ? ns[0] : ns;
+  }`
+    : ""
+}\
+${
+  apis.includes("GM_generateUUID")
+    ? `
+  GM_generateUUID = function() {
+    if (crypto.randomUUID) {
+      return crypto.randomUUID();
+    } else {
+      let ut = '';
+      for (let i = 0; i<32; i++) {
+        if (i==8 || i==12 || i==16 || i==20) ut+='-';
+        ut += parseInt(Math.random()*16).toString(16);
+      }
+      return ut;
+    }
+  }`
+    : ""
+}\
+${
+  info.script.require.length > 0 && inclReq
+    ? `
+${reqsrc}
+`
+    : ""
+}
+${
+  info.script.require.length > 0 && !inclReq
+    ? `
+  __$nmObj.load = new Promise( (resolve,reject) => {
+    __$nmObj.req.forEach( js => {
+      __$nmObj.link=document.createElement('script');
+      __$nmObj.link.async = false; __$nmObj.link.src = js;
+      __$nmObj.link.onerror = e => reject(js,e);
+      __$nmObj.link.onload = e => {
+        __$nmObj.req.splice(__$nmObj.req.findIndex( v => v === js ),1);
+        if (__$nmObj.req.length===0) resolve();
+      }
+      (document.head || document.body || document.documentElement).appendChild(__$nmObj.link);
+    })
+  }).then( function() {`
+    : ""
+}
+  ${
+    load == 4
+      ? "window.addEventListener('load', function() {"
+      : load == 3
+      ? `document.addEventListener('readystatechange', function () {
+    if (document.readyState === 'complete') {`
+      : load == 2
+      ? "document.addEventListener('DOMContentLoaded', function() {"
+      : load == 1
+      ? `document.addEventListener('readystatechange', function () {
+    if (document.readyState === 'interactive') {`
+      : ""
+  }
+${delay > 0 ? "setTimeout( function () {" : ""}
+/* 以下是原始代码 */
+${body}
+/* 以上是原始代码 */
+${delay > 0 ? `},${delay});` : ""}
+  ${
+    load == 4
+      ? "});"
+      : load == 3
+      ? "}});"
+      : load == 2
+      ? "});"
+      : load == 1
+      ? "}});"
+      : ""
+  }
+${
+  info.script.require.length > 0 && !inclReq
+    ? '},(js,msg) => alert(__$nmObj.name+" 依赖的库 "+js+" 加载失败，原因: "+msg));'
+    : ""
+}})();`.replace(/ *\n/g, "\n");
+        }
+        async function buildBody() {
+          if (ok) {
+            document.querySelector("#code").value = await buildCode();
+            document.querySelector("#result").innerText = "编辑";
+            document.querySelector("#result").disabled = false;
+            document.querySelector("#copy").disabled = false;
+            if (detectBrowser() >= 0) {
+              document.querySelector("#inst").disabled = false;
+              viobj.name = info.script.name;
+              viobj.author = info.script.author;
+              viobj.id = genAddonID(true);
+              while (!idChecker(viobj.id)) viobj.id = genAddonID(false);
+              pushInfo(1, `安装时将会使用 ID ${viobj.id}`);
+            }
+            pushInfo(
+              1,
+              `脚本代码大小: ${origSize} > ${
+                document.querySelector("#code").value.length
+              }`
+            );
+            pushInfo(1, "转换成功");
+          } else {
+            pushInfo(3, "无法转换脚本");
+            document.querySelector("#result").innerText = "转换失败";
+            document.querySelector("#result").disabled = true;
+            document.querySelector("#copy").disabled = true;
+            document.querySelector("#inst").disabled = true;
+          }
+        }
+      }
+
+      function analy() {
+        let cont = document.querySelector("#import").value,
+          span = document.createElement("span"),
+          curl = null;
+        viobj = { id: 0, name: "", author: "", url: "*", code: "" };
+        orig = "";
+        origSize = 0;
+        document.querySelector("#status").innerHTML = "";
+        ret("#p2");
+        try {
+          if (cont.indexOf("// ==UserScript==") >= 0) {
+            origSize = cont.length;
+            parseBody(cont);
+          } else {
+            cont = cont
+              .replace(/\n/g, "")
+              .replace(/[^!-~]/g, "")
+              .replace(/^.*http/, "http");
+            curl = new URL(cont);
+            if (
+              curl.protocol == "https:" &&
+              curl.pathname.slice(-8) == ".user.js"
+            ) {
+              span.className = "info";
+              span.innerText = "正在获取，请稍候...";
+              document
+                .querySelector("#status")
+                .insertAdjacentElement("afterbegin", span);
+              span = document.createElement("span");
+              fetch(" " + set.corsSrv + cont).then(
+                function (p) {
+                  if (p.ok) {
+                    orig = cont;
+                    p.text().then((c) => {
+                      origSize = c.length;
+                      document.querySelector("#import").value = `/* ${orig} */
+${c}
+`;
+                      parseBody(c);
+                    });
+                  } else {
+                    span.className = "erro";
+                    span.innerText = "脚本内容获取失败，" + p.status;
+                    document
+                      .querySelector("#status")
+                      .insertAdjacentElement("afterbegin", span);
+                  }
+                },
+                function (e) {
+                  span.className = "erro";
+                  span.innerText = "脚本内容获取失败，" + e.message;
+                  document
+                    .querySelector("#status")
+                    .insertAdjacentElement("afterbegin", span);
+                }
+              );
+            } else {
+              span.className = "erro";
+              span.innerText = "没有在内容里找到脚本地址";
+              document
+                .querySelector("#status")
+                .insertAdjacentElement("afterbegin", span);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+          span = document.createElement("span");
+          span.className = "erro";
+          span.innerText = "转换过程中发生错误: " + e.type + ": " + e.message;
+          document
+            .querySelector("#status")
+            .insertAdjacentElement("afterbegin", span);
+        }
+      }
+
+      function cleart() {
+        document.querySelector("#import").value = "";
+        document.querySelector("#import").innerText = "";
+      }
+
+      function copy() {
+        document.querySelector("#code").select();
+        document.execCommand("copy");
+      }
+
+      function ret(pos) {
+        document.querySelector(pos).scrollIntoView({ behavior: "smooth" });
+      }
+
+      function syncSet(toui) {
+        Object.keys(set).forEach((s) => {
+          if (toui) {
+            if (typeof set[s] == "number") {
+              document.querySelector(`input[value='${set[s]}']`).checked = true;
+            } else if (typeof set[s] == "string") {
+              document.querySelector(`input[name="${s}"]`).value = set[s];
+            } else {
+              document.querySelector(`input[name="${s}"]`).checked = set[s];
+            }
+          } else {
+            if (typeof set[s] == "number") {
+              set[s] = parseInt(
+                document.querySelector(`input[name="${s}"]:checked`).value
+              );
+            } else if (typeof set[s] == "string") {
+              set[s] = document.querySelector(`input[name="${s}"]`).value;
+            } else {
+              set[s] = document.querySelector(`input[name="${s}"]`).checked;
+            }
+          }
+        });
+        if (!toui) {
+          if (set.darkUI) {
+            toDark();
+          } else {
+            if (darkStyle) darkStyle.remove();
+          }
+          markDark(set.darkUI);
+        }
+      }
+
+      function openSet() {
+        syncSet(true);
+        document.querySelector("dialog [value=ok]").onclick = syncSet.bind(
+          this,
+          false
+        );
+        document.querySelector("#version").innerText = ` ${NmInfo} `;
+        document.querySelector("dialog").showModal();
+      }
+
+      function toDark() {
+        let crl = document.querySelector("#dark").sheet.cssRules[0].cssRules;
+        if (!darkStyle) {
+          darkStyle = document.createElement("style");
+          for (i = 0; i < crl.length; i++)
+            darkStyle.innerText += crl[i].cssText;
+        }
+        document.head.appendChild(darkStyle);
+      }
+
+      function markDark(stat) {
+        if (stat) {
+          window.localStorage.setItem("Nullmonkey_darkKey", "1");
+          toDark();
+        } else {
+          window.localStorage.removeItem("Nullmonkey_darkKey");
+        }
+      }
+
+      function queryDark() {
+        return window.localStorage.hasOwnProperty("Nullmonkey_darkKey");
+      }
+
+      function base64(str) {
+        return window.btoa(unescape(encodeURIComponent(str)));
+      }
+
+      function detectBrowser() {
+        return window.via && (window.via.cmd || window.via.openSettings)
+          ? 0
+          : window.sharkbrowser && window.sharkbrowser.installAddon
+          ? 1
+          : window.lit
+          ? 2
+          : window.alook && window.alook.addon
+          ? 3
+          : window.mthtml && window.mthtml.mtjs
+          ? 4
+          : window.mx_browser_obj && window.mx_browser_obj.sethostjs
+          ? 5
+          : -1;
+      }
+
+      function queryStatus(id) {
+        return;
+        window.sharkbrowser && window.sharkbrowser.getInstalledAddonID
+          ? JSON.parse(window.sharkbrowser.getInstalledAddonID()).includes(
+              id.toString()
+            )
+          : window.via && window.via.getInstalledAddonID
+          ? JSON.parse(window.via.getInstalledAddonID()).includes(id)
+          : false;
+      }
+
+      function idChecker(id) {
+        return queryStatus(id)
+          ? false // 已经安装的
+          : id < 100
+          ? false // Via 轻插件 / Via 官方 / 玩浏览器
+          : id > 1000 && id < 1032
+          ? false // Via 轻插件 旧版
+          : id > 3744 && id < 3753
+          ? false // 本人
+          : id > 330000 && id < 331000
+          ? false // HiEarth
+          : id > 709300 && id < 709500
+          ? false // 李宇春
+          : id == 22335
+          ? false // Elyhty
+          : id == 65535
+          ? false // Xmader
+          : id > 984703 && id < 994894
+          ? false // 本人的 X Bridge
+          : id > 1912000 || id < -1912000
+          ? false // 本人的 荟萃 Bridge
+          : id > 520 && id < 530
+          ? false // Bext 1
+          : id == 12345
+          ? false // Bext 2
+          : id > 98776 && id < 98781
+          ? false // Bext 3 本人
+          : id > 132321 && id < 132323
+          ? false // Bext 4
+          : id == 303001
+          ? false // Bext 5
+          : id > 1234500 && id < 1234509
+          ? false // Bext 6
+          : id == 648648
+          ? false // Bext 7
+          : id == 10086
+          ? false // Bext 8
+          : id == 10000
+          ? false // Bext 9
+          : id == 1656139986
+          ? false
+          : id; // VideoTogether
+      }
+
+      function genAddonID(first) {
+        let id;
+        if (first && orig.indexOf("greasyfork.org") > 0) {
+          id = parseInt(orig.match(/scripts\/(\d+)-/)[1]);
+        } else if (first && orig.indexOf("userscripts-mirror.org") > 0) {
+          id = parseInt(orig.match(/source\/(\d+)\.user.js/)[1]);
+        }
+        return !id ? parseInt(400000 + 90000 * Math.random()) : id;
+      }
+
+      function installer(obj) {
+        switch (detectBrowser()) {
+          case 0:
+            window.via.addon(base64(JSON.stringify(obj)));
+            break;
+          case 1:
+            window.sharkbrowser.installAddon(base64(JSON.stringify(obj)));
+            break;
+          case 2:
+            window.lit.addon(base64(JSON.stringify(obj)));
+            break;
+          case 3:
+            window.alook.addon(base64(encodeURIComponent(JSON.stringify(obj))));
+            break;
+          case 4:
+            window.mthtml.mtjs(base64(obj.name), "Kg==", obj.code);
+            break;
+          case 5:
+            window.mx_browser_obj.sethostjs(
+              obj.name,
+              "*",
+              "mxjshost:" + obj.code
+            );
+            break;
+        }
+      }
+
+      function inst() {
+        viobj.code = base64(document.querySelector("#code").value);
+        installer(viobj);
+      }
+
+      function openDialog(id) {
+        document.querySelector(id).showModal();
+      }
+
+      function clickReg(id, func, arg) {
+        if (!arg) arg = undefined;
+        document
+          .querySelector(id)
+          .addEventListener("click", func.bind(this, arg));
+      }
+
+      clickReg("#config", openSet);
+      clickReg("#analy", analy);
+      clickReg("#clear", cleart);
+      clickReg("#result", ret, "#p3");
+      clickReg("#inst", inst);
+      clickReg("#ret1", ret, "#p1");
+      clickReg("#copy", copy);
+      clickReg("#ret2", ret, "#p2");
+      clickReg("#openlic", openDialog, "#lic");
+      clickReg("#opendoc", openDialog, "#doc");
+      if (queryDark()) {
+        toDark();
+        set.darkUI = true;
+      }
+      document.querySelectorAll("dialog").forEach((dialog) => {
+        dialog.addEventListener("click", (e) => {
+          if (e.target.tagName === "DIALOG") dialog.close();
+        });
+      });
+      document.querySelector("#code").value = "";
+      document.querySelector("#result").disabled = true;
+      document.querySelector("#copy").disabled = true;
+      document.querySelector("#inst").disabled = true;
+      syncSet(true);
+      setTimeout(ret, 200, "#p1");
+    </script>
+  </body>
+</html>
